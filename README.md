@@ -1,23 +1,14 @@
 # colab-tf-utils
-Simple GDrive-Based model checkpointing from within Google's Colab service
+Simple GDrive-Based file saving from within Google's Colab service
 
 
-Usage:
+Usage Example:
 
-    !wget https://raw.githubusercontent.com/Zahlii/colab-tf-utils/master/utils.py
+    !wget https://raw.githubusercontent.com/StefOe/colab-tf-utils/master/utils.py
     import utils
+    from torchvision.models import AlexNet
 
-    import keras
-
-    def compare(best, new):
-      return best.losses['val_acc'] < new.losses['val_acc']
-
-    def path(new):
-      if new.losses['val_acc'] > 0.8:
-        return 'VGG16_%s.h5' % new.losses['val_acc']
-
-    callbacks = cb = [
-          utils.GDriveCheckpointer(compare,path),
-          keras.callbacks.TensorBoard(log_dir=os.path.join(utils.LOG_DIR,'VGG16'))
-    ]
-
+    m = AlexNet()
+    gsync = GDriveSync()
+    torch.save("model.pt")
+    gsync.upload_file_to_folder("model.pt")

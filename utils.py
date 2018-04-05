@@ -1,25 +1,15 @@
+# based on https://github.com/Zahlii/colab-tf-utils, only deleted keras functionality
+
 _res = get_ipython().run_cell("""
 !pip install tqdm
-!pip install keras
-!rm tboard.py
-!wget https://raw.githubusercontent.com/mixuala/colab_utils/master/tboard.py
-!rm -rf log/
 """)
 
 
 import os
 import tboard
 from tqdm import tqdm
-# set paths
-ROOT = os.path.abspath('.')
-LOG_DIR = os.path.join(ROOT, 'log')
-
-# will install `ngrok`, if necessary
-# will create `log_dir` if path does not exist
-tboard.launch_tensorboard( bin_dir=ROOT, log_dir=LOG_DIR )
 
 from collections import namedtuple
-import keras
 from google.colab import auth
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
@@ -28,9 +18,6 @@ from tqdm import tqdm
 
 # Represents a Folder or File in your Google Drive
 GDriveItem = namedtuple('GDriveItem', ['name', 'fid'])
-
-# Represents Epoch information as returned from keras
-EpochData = namedtuple('EpochData', ['epoch', 'losses'])
 
 
 class GDriveSync:
@@ -132,55 +119,3 @@ class GDriveSync:
         """
         request = self.drive_service.files().delete(fileId=file.fid)
         request.execute()
-
-
-class GDriveCheckpointer(keras.callbacks.Callback):
-    """
-    Keras Callback that automatically saves models into your Google Drive.
-    Outdated checkpoints are automatically deleted remotely to prevent GDrive from filling up.
-
-    Checkpointing is controlled by two functions:
-        compare_fn(best_epoch: EpochData, current_epoch: EpochData) -> bool
-        - If this function returns true, the current_epoch is assumed to have better performance than the older best_epoch.
-        - e.g. return best_epoch.losses['val_acc'] < current_epoch.losses['val_acc']
-
-        filepath_fn(epoch: EpochData) -> Union[String, None]
-        - If this function returns None, the checkpoint is skipped. This can be used to skip backing up early epochs.
-          If it returns a String path, the model is uploaded into the default GDrive folder with the given file name.
-    """
-    def __init__(self, compare_fn, filepath_fn):
-        assert compare_fn is not None, 'Need a compare function which gets all the losses and evaluation data of two epochs and which needs to return True if the second one is better.'
-        assert filepath_fn is not None, 'Need a function that derives a file path based on a dictionary of losses and metrics.'
-
-        super(GDriveCheckpointer, self).__init__()
-
-        self.saver = GDriveSync()
-
-        self.compare_fn = compare_fn
-        self.filepath_fn = filepath_fn
-        self.best_epoch = None
-        self.best_filename = None
-
-    def on_epoch_end(self, epoch, logs={}):
-        l = {**logs}
-        d = EpochData(epoch, l)
-
-        if self.best_epoch is None or self.compare_fn(self.best_epoch, d):
-            self.best_epoch = d
-            fn = self.filepath_fn(d)
-            if fn is not None and fn:
-                if self.best_filename:
-                    os.remove(self.best_filename)
-                    old_file = self.saver.find_items(self.best_filename)[0]
-                    print('Removing old cloud file %s' % old_file.name)
-                    self.saver.delete_file(old_file)
-                self.best_filename = fn
-                self._save_checkpoint()
-            else:
-                print('Skipping upload because path function returned no path.')
-        else:
-            print('No improvement.')
-
-    def _save_checkpoint(self):
-        self.model.save(self.best_filename)
-        self.saver.upload_file_to_folder(self.best_filename, self.saver.default_folder)
