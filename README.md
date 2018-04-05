@@ -9,6 +9,6 @@ Usage Example:
     from torchvision.models import AlexNet
 
     m = AlexNet()
-    gsync = GDriveSync()
+    gsync = utils.GDriveSync()
     torch.save("model.pt")
     gsync.upload_file_to_folder("model.pt")
