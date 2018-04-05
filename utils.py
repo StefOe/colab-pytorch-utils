@@ -31,13 +31,28 @@ class GDriveSync:
         self.drive_service = build('drive', 'v3')
         self.default_folder = self.find_items('Colab Notebooks')[0]
 
+    def update_file_to_folder(self, local_file, folder: GDriveItem = None):
+        """
+        Update a local file, optionally to a specific folder in Google Drive.
+        Deletes the old file if present.
+        Warning: Deletes all files with the same name in your Google Drive regardless of the folder structure.
+        :param local_file: Path to the local file
+        :param folder: (Option) GDriveItem which should be the parent.
+        :return:
+        """
+        old_files = self.find_items(local_file)
+        for old_file in old_files:
+            self.delete_file(old_file)
+        self.upload_file_to_folder(local_file, folder)
+
     def find_items(self, name):
         """
         Find folders or files based on their name. This always searches the full Google Drive tree!
         :param name: Term to be searched. All files containing this search term are returned.
         :return:
         """
-        folder_list = self.drive_service.files().list(q='name contains "%s"' % name).execute()
+        folder_list = self.drive_service.files().list(
+            q='name contains "%s"' % name).execute()
         folders = []
         for folder in folder_list['files']:
             folders.append(GDriveItem(folder['name'], folder['id']))
@@ -94,7 +109,8 @@ class GDriveSync:
 
         last_progress = 0
 
-        pbar = tqdm(total=100, desc='Downloading file %s to %s' % (remote_file.name, path))
+        pbar = tqdm(total=100, desc='Downloading file %s to %s' %
+                    (remote_file.name, path))
 
         with open(path, 'wb') as fh:
             downloader = MediaIoBaseDownload(fh, request)
