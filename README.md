@@ -1,4 +1,4 @@
-# colab-tf-utils
+# colab-pytorch-utils
 Simple GDrive-Based file saving from within Google's Colab service
 
 
@@ -11,4 +11,6 @@ Usage Example:
     m = AlexNet()
     gsync = utils.GDriveSync()
     torch.save("model.pt")
-    gsync.upload_file_to_folder("model.pt")
+    gsync.update_file_to_folder("model.pt")
+
+Careful, at the moment all files with the same filename will be deleted from your GDrive.
